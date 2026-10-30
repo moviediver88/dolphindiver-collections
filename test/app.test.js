@@ -35,8 +35,18 @@ test('multi-user collection flows and access boundaries',{timeout:90000},async t
    aliceLink=(await req('/api/install','POST',{},alice.cookie)).data.url;bobLink=(await req('/api/install','POST',{},bob.cookie)).data.url;
    const ap=new URL(aliceLink).pathname,bp=new URL(bobLink).pathname;
    const a=await req(ap),b=await req(bp);assert.equal(a.status,200);assert.notEqual(a.data.id,b.data.id);assert.equal(a.headers.get('access-control-allow-origin'),'*');assert.equal(a.data.behaviorHints.configurationRequired,false);
-   const feed=ap.replace('manifest.json','catalog/Collections/dd_'+movieCol+'.json');assert.equal((await req(feed)).data.metas[0].name,'Iron Man');
-   const other=bp.replace('manifest.json','catalog/Collections/dd_'+movieCol+'.json');assert.equal((await req(other)).status,404);
+   const feed=ap.replace('manifest.json','catalog/WatchNest/dd_'+movieCol+'.json');assert.equal((await req(feed)).data.metas[0].name,'Iron Man');
+   assert.ok(a.data.catalogs[0].extra.find(x=>x.name==='genre').options.includes('Comedy'));
+   assert.equal((await req(feed.replace('.json','/genre=Action.json'))).data.metas.length,1);
+   assert.equal((await req(feed.replace('.json','/genre=Comedy.json'))).data.metas.length,0);
+   assert.equal((await req(feed.replace('.json','/genre=Sci-Fi&search=Iron&skip=0.json'))).data.metas.length,1);
+   // Existing v0.1 rows have no genres: the first feed request fills them without changing memberships.
+   await db.query('UPDATE dd_items SET genres=NULL WHERE imdb_id=$1',['tt0371746']);
+   assert.equal((await req(feed.replace('.json','/genre=Action.json'))).data.metas.length,1);
+   assert.deepEqual((await db.query('SELECT genres FROM dd_items WHERE imdb_id=$1',['tt0371746'])).rows[0].genres,['Action','Sci-Fi']);
+   assert.equal(a.data.name,'WatchNest by DolphinDiver');assert.equal(a.data.catalogs[0].type,'WatchNest');
+   assert.equal((await req(feed.replace('/WatchNest/','/Collections/'))).status,200);
+   const other=bp.replace('manifest.json','catalog/WatchNest/dd_'+movieCol+'.json');assert.equal((await req(other)).status,404);
    assert.equal((await req('/api/collections/'+movieCol,'PATCH',{name:'hijacked'},bob.cookie)).status,404);
    assert.equal((await req('/api/collections/'+movieCol,'DELETE',{},bob.cookie)).status,404);
    assert.equal((await req('/api/items','POST',{collectionId:movieCol,id:'tt0371746',type:'movie'},bob.cookie)).status,404);
@@ -51,8 +61,17 @@ test('multi-user collection flows and access boundaries',{timeout:90000},async t
    assert.equal((await req('/api/membership','POST',{collectionId:target.id,key:'movie:tt0371746'},alice.cookie)).status,200);
    assert.equal((await req('/api/membership','DELETE',{collectionId:movieCol,key:'movie:tt0371746'},alice.cookie)).status,200);
    let s=(await req('/api/me','GET',null,alice.cookie)).data;assert.equal(s.items.length,2);assert.ok(s.memberships.some(x=>x.collection_id===target.id));
-   const auto=s.collections.find(x=>x.smart&&x.kind==='movie');const url=new URL(aliceLink).pathname.replace('manifest.json','catalog/Collections/dd_'+auto.id+'.json');assert.equal((await req(url)).data.metas.length,1);
+   const auto=s.collections.find(x=>x.smart&&x.kind==='movie');const url=new URL(aliceLink).pathname.replace('manifest.json','catalog/WatchNest/dd_'+auto.id+'.json');assert.equal((await req(url)).data.metas.length,1);
    assert.equal((await req('/api/collections/'+auto.id,'DELETE',{},alice.cookie)).status,404);
+  });
+  await t.test('convert automatic collection without losing titles or leaking other accounts',async()=>{
+   const auto=aliceState.collections.find(x=>x.smart&&x.kind==='series');
+   assert.equal((await req('/api/make-manual','POST',{collectionId:auto.id},bob.cookie)).status,404);
+   assert.equal((await req('/api/make-manual','POST',{collectionId:auto.id},alice.cookie)).status,200);
+   const current=(await req('/api/me','GET',null,alice.cookie)).data;
+   assert.equal(current.collections.find(x=>x.id===auto.id).smart,false);
+   assert.ok(current.memberships.some(x=>x.collection_id===auto.id&&x.item_key==='series:tt9140554'));
+   assert.equal((await req('/api/make-manual','POST',{collectionId:auto.id},alice.cookie)).status,200);
   });
   await t.test('rename, ordering and export contain no credentials',async()=>{
    assert.equal((await req('/api/collections/'+movieCol,'PATCH',{name:'Weekend movies'},alice.cookie)).status,200);
