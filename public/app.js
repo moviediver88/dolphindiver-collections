@@ -15,7 +15,7 @@ function showAuth(){document.querySelectorAll('dialog[open]').forEach(d=>d.close
 function setMode(mode){
  authMode=mode;$('tab-login').classList.toggle('active',mode==='login');$('tab-signup').classList.toggle('active',mode==='signup');
  $('auth-heading').textContent=mode==='login'?'Welcome back.':mode==='signup'?'Your lists. Your way.':'Recover your account.';
- $('auth-description').textContent=mode==='signup'?'Choose a separate password of at least 12 characters. No Stremio login is needed.':mode==='recover'?'Use the private recovery code you saved when registering.':'Use your Collections account, not your Stremio password.';
+ $('auth-description').textContent=mode==='signup'?'Choose a separate password of at least 12 characters. No Stremio login is needed.':mode==='recover'?'Use the private recovery code you saved when registering.':'Use your WatchNest account, not your Stremio password.';
  $('auth-submit').textContent=mode==='login'?'Sign in':mode==='signup'?'Create account':'Reset password';
  $('password').autocomplete=mode==='login'?'current-password':'new-password';$('password').minLength=mode==='login'?1:12;
  $('confirm-wrap').hidden=mode==='login';$('confirm-password').required=mode!=='login';
@@ -52,6 +52,7 @@ function draw(){
  if(!state.collections.length)return;drawNav();const c=collection();if(!c)return;
  $('account-name').textContent=state.username+' / PERSONAL SPACE';$('collection-title').textContent=c.name;
  $('collection-description').textContent=c.smart?'Automatic collection · Includes all your saved '+(c.kind==='movie'?'movies':'TV shows'):(c.kind==='all'?'Movies and TV Shows':c.kind==='movie'?'Movies only':'TV Shows only')+' · Titles can belong to more than one collection';
+ $('make-manual').hidden=!c.smart;
  $('delete-collection').hidden=c.smart;$('move-up').disabled=state.collections[0].id===selected;$('move-down').disabled=state.collections.at(-1).id===selected;
  $('search-type').disabled=c.kind!=='all';if(c.kind!=='all')$('search-type').value=c.kind;drawSaved();
 }
@@ -82,8 +83,10 @@ $('close-search').addEventListener('click',()=>$('search-section').hidden=true);
 $('saved-filter').addEventListener('input',drawSaved);
 $('new-collection').addEventListener('click',()=>{$('collection-form').reset();dialog('collection-dialog');});
 $('collection-form').addEventListener('submit',run(async()=>{const r=await api('collections','POST',{name:$('collection-name').value,kind:$('collection-kind').value});selected=r.id;$('collection-dialog').close();await load();notify('Collection created. Reinstall your personal link if Stremio keeps its old menu.');}));
+const manualButton=button('Make this a regular collection',async()=>{if(!confirm('Keep the titles currently in this collection, then stop automatically adding other saved titles to it?'))return;await api('make-manual','POST',{collectionId:selected});await load();notify('This is now a regular collection. Add titles to it individually.');});
+manualButton.id='make-manual';manualButton.hidden=true;$('rename-collection').before(manualButton);
 $('rename-collection').addEventListener('click',run(async()=>{const c=collection(),name=prompt('New collection name:',c.name);if(name===null)return;await api('collections/'+c.id,'PATCH',{name});await load();notify('Collection renamed. Reinstall your personal link if Stremio keeps its old menu.');}));
-$('delete-collection').addEventListener('click',run(async()=>{const c=collection();if(!confirm('Delete “'+c.name+'”? Its titles will remain in the automatic Movies or TV Shows collections.'))return;await api('collections/'+c.id,'DELETE');await load();notify('Collection deleted. Reinstall your personal link if Stremio keeps its old menu.');}));
+$('delete-collection').addEventListener('click',run(async()=>{const c=collection();if(!confirm('Delete “'+c.name+'”? Saved titles and their other collection memberships will be kept.'))return;await api('collections/'+c.id,'DELETE');await load();notify('Collection deleted. Reinstall your personal link if Stremio keeps its old menu.');}));
 async function move(delta){const ids=state.collections.map(x=>x.id),i=ids.indexOf(selected),j=i+delta;if(j<0||j>=ids.length)return;[ids[i],ids[j]]=[ids[j],ids[i]];await api('order','POST',{ids});await load();notify('Collection order saved.');}
 $('move-up').addEventListener('click',run(()=>move(-1)));$('move-down').addEventListener('click',run(()=>move(1)));
 $('assign-form').addEventListener('submit',run(async()=>{await api('membership','POST',{key:assignKey,collectionId:$('assign-target').value});$('assign-dialog').close();await load(false);notify('Title added to collection.');}));
