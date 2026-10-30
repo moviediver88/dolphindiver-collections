@@ -1,4 +1,4 @@
-# Validation for v0.1.0
+# Validation for v0.2.1
 
 Local validation performed while preparing this package on October 29, 2026.
 
@@ -45,3 +45,7 @@ A live Cinemeta movie search for Iron Man and a metadata lookup for tt0371746 re
 ## Deployment checks still required
 
 Follow DEPLOY.md to verify a real hosted PostgreSQL connection, persistence across a Render redeploy, account isolation in the deployed environment, and Windows/onn Stremio installation and browsing. Do these before inviting a wider audience.
+
+## Version 0.2 additions
+
+Local tests cover advertised genre options, matching and nonmatching genres, combined search/pagination, backfill of old null-genre titles, and conversion of automatic collections with ownership checks and retained memberships. Client dropdown behavior still needs deployment testing.

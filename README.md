@@ -1,14 +1,14 @@
-# DolphinDiver Collections
+# WatchNest by DolphinDiver
 
 ### Your next watch, organized.
 
-Create your own movie and television collections and display them in **Stremio → Discover → Collections**.
+Create your own movie and television collections and display them in **Stremio → Discover → WatchNest**.
 
-**Version 0.1.0 · Public beta software · Personal collections for separate accounts**
+**Version 0.2.1 · Public beta software · Personal collections for separate accounts**
 
 ## What it does
 
-- Create a separate Collections account; no Stremio password is required.
+- Create a separate WatchNest account; no Stremio password is required.
 - Search movies and television by title, with metadata from Cinemeta.
 - Create and rename collections, set their order, and save titles in several collections.
 - Add or remove titles from the management webpage.
@@ -28,16 +28,17 @@ Create your own movie and television collections and display them in **Stremio �
 | TV Shows | Automatically includes every series you save |
 | Movies | Automatically includes every movie you save |
 
-Rename My Shows or create your own collections such as Mark's Shows, Velma's Shows, or Weekend Movies. Collection names are entirely user-defined. Automatic Movies and TV Shows can be renamed but cannot be deleted.
+Rename My Shows or create your own collections such as Mark's Shows, Velma's Shows, or Weekend Movies. Collection names are entirely user-defined. Automatic Movies and TV Shows can be renamed. Choose **Make this a regular collection** to keep their current titles but stop automatically including other titles; they can then be managed or deleted like other regular collections.
 
 ## How people use it
 
 1. Open the deployment's public website or `/configure` page.
-2. Create a Collections account with its own username and password.
+2. Create a WatchNest account with its own username and password.
 3. Save the recovery code somewhere private. There is no email recovery in this version.
 4. Search for titles and add them to a collection.
 5. Choose **Install in Stremio**, or copy the personal manifest link into Stremio's add-on search or Addon Manager.
-6. Open **Discover → Collections** in Stremio.
+6. Open **Discover → WatchNest** in Stremio.
+7. Select a collection, then use its genre dropdown to filter your saved titles.
 
 Other people visit the same public website and create their own accounts. They must not install someone else's personal link unless they intend to share that person's collections.
 
@@ -97,7 +98,8 @@ For local development, set DATABASE_URL, APP_SECRET, and PUBLIC_URL in your shel
 - No true subfolders, episode-level collections, drag-and-drop title ordering, or automatic JSON restore yet. JSON export is provided for portability.
 - Titles are sorted by most recently added within a collection.
 - Search and artwork depend on Cinemeta and external image services; not every production is indexed.
-- Live deployment, a real hosted Postgres connection, and onn/Windows Stremio behavior must be checked before a wider release.
+- Version 0.1 browsing and Smallville playback were confirmed by the operator on Windows and onn Google TV. Version 0.2 genre filtering still needs testing on those clients.
+- Older titles acquire genres in batches of up to 20 when their collection is opened. With large older lists, revisit the collection to complete the lookup. Titles with missing provider genres remain visible without a genre filter.
 - This release has local functional and access-control tests; it has not received an independent security audit.
 
 ## Share the public setup link

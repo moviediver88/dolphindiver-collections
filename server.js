@@ -6,7 +6,8 @@ const crypto=require('node:crypto');
 const {Store}=require('./store');
 const {digest,token,equal,fail,username,password,hashPassword,checkPassword,secretBox}=require('./security');
 const {metadata:defaultMetadata}=require('./metadata');
-const VERSION='0.1.0',COOKIE='dd_session';
+const VERSION='0.2.1',COOKIE='dd_session';
+const GENRES=['Action','Adventure','Animation','Biography','Comedy','Crime','Documentary','Drama','Family','Fantasy','Film-Noir','History','Horror','Music','Musical','Mystery','News','Reality-TV','Romance','Sci-Fi','Short','Sport','Talk-Show','Thriller','War','Western'];
 const uuid=x=>typeof x==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(x);
 function name(x){if(typeof x!=='string'||!x.trim()||x.trim().length>60)fail(400,'Use a collection name between 1 and 60 characters.');return x.trim();}
 function itemKey(x){if(typeof x!=='string'||!/^(movie|series):tt\d{5,12}$/.test(x))fail(400,'Invalid title.');return x;}
@@ -40,9 +41,9 @@ function createApp({db,secret,publicUrl,metadata=defaultMetadata,registrationOpe
  const getUser=async req=>{const m=String(req.headers.cookie||'').match(/(?:^|;\s*)dd_session=([A-Za-z0-9_-]{43})(?:;|$)/);const u=m&&await store.session(digest(m[1]));if(!u)fail(401,'Please sign in.');return u;};
  function manifest(user,collections=[]){return {
   id:user?'community.dolphindiver.collections.'+user.id:'community.dolphindiver.collections',version:VERSION,
-  name:'DolphinDiver Collections',description:'Your personal movie and TV collections. Manage titles on the configuration page. Separate from Stremio Library; no streams hosted. Optional support: https://ko-fi.com/dolphindiver',
-  resources:['catalog'],types:['Collections','movie','series'],
-  catalogs:collections.map(c=>({id:'dd_'+c.id,type:'Collections',name:c.name,extra:[{name:'search',isRequired:false},{name:'skip',isRequired:false}]})),
+  name:'WatchNest by DolphinDiver',description:'Your personal movie and TV collections. Manage titles on the configuration page. Separate from Stremio Library; no streams hosted. Optional support: https://ko-fi.com/dolphindiver',
+  resources:['catalog'],types:['WatchNest','movie','series'],
+  catalogs:collections.map(c=>({id:'dd_'+c.id,type:'WatchNest',name:c.name,extra:[{name:'genre',isRequired:false,options:GENRES},{name:'search',isRequired:false},{name:'skip',isRequired:false}]})),
   behaviorHints:{configurable:true,configurationRequired:!user}
  };}
  const server=http.createServer(async(req,res)=>{
@@ -60,11 +61,15 @@ function createApp({db,secret,publicUrl,metadata=defaultMetadata,registrationOpe
     const user=await store.feed(digest(m[1]));if(!user)fail(404,'This installation link is invalid or has been replaced.');
     if(m[2]==='configure'){headers(res);res.writeHead(302,{Location:'/configure'});return res.end();}
     if(m[2]==='manifest.json'){const cols=(await store.state(user.id)).collections;return json(res,200,manifest(user,cols),true);}
-    const c=m[2].match(/^catalog\/Collections\/dd_([a-f0-9-]{36})(?:\/([^/]*))?\.json$/);
+    const c=m[2].match(/^catalog\/(?:WatchNest|Collections)\/dd_([a-f0-9-]{36})(?:\/([^/]*))?\.json$/);
     if(!c||!uuid(c[1]))fail(404,'Catalog not found.');
     const extras=new URLSearchParams(c[2]||'');for(const [k,v] of url.searchParams)extras.set(k,v);
     const search=String(extras.get('search')||'').slice(0,100),raw=String(extras.get('skip')||'0');const skip=/^\d+$/.test(raw)?Math.min(Number(raw),100000):0;
-    const metas=await store.catalog(user.id,c[1],search,skip);if(!metas)fail(404,'Collection not found.');return json(res,200,{metas},true);
+    const genre=String(extras.get('genre')||'').slice(0,60);
+    // Upgrade older saved titles in small batches; provider errors never erase titles.
+    const pending=await store.pendingGenres(user.id,c[1]);
+    for(let i=0;i<pending.length;i+=4)await Promise.all(pending.slice(i,i+4).map(async item=>{try{const m=await metadata.lookup(item.id,item.type);await store.saveGenres(user.id,item.key,m.genres||[]);}catch{}}));
+    const metas=await store.catalog(user.id,c[1],search,skip,genre);if(!metas)fail(404,'Collection not found.');return json(res,200,{metas},true);
    }
    if(route.startsWith('/api/')){
     if(!['GET','POST','PATCH','DELETE'].includes(req.method))fail(405,'Method not allowed.');
@@ -102,6 +107,7 @@ function createApp({db,secret,publicUrl,metadata=defaultMetadata,registrationOpe
     if(route==='/api/install'&&req.method==='POST'){await body(req);return json(res,200,{url:origin+'/addon/'+box.decrypt(u.feed_cipher)+'/manifest.json'});}
     if(route==='/api/collections'&&req.method==='POST'){const b=await body(req);if(!['all','movie','series'].includes(b.kind))fail(400,'Choose a valid collection type.');return json(res,201,{id:await store.createCollection(u.id,name(b.name),b.kind)});}
     if(route==='/api/order'&&req.method==='POST'){const b=await body(req);if(!Array.isArray(b.ids)||!b.ids.every(uuid))fail(400,'Invalid collection order.');await store.reorder(u.id,b.ids);return json(res,200,{ok:true});}
+    if(route==='/api/make-manual'&&req.method==='POST'){const b=await body(req);if(!uuid(b.collectionId))fail(400,'Invalid collection.');await store.makeManual(u.id,b.collectionId);return json(res,200,{ok:true});}
     const col=route.match(/^\/api\/collections\/([a-f0-9-]{36})$/);
     if(col&&uuid(col[1])&&req.method==='PATCH'){const b=await body(req);await store.renameCollection(u.id,col[1],name(b.name));return json(res,200,{ok:true});}
     if(col&&uuid(col[1])&&req.method==='DELETE'){await body(req);await store.deleteCollection(u.id,col[1]);return json(res,200,{ok:true});}
@@ -149,7 +155,7 @@ async function main(){
  await app.ready;
  await db.query(fs.readFileSync(path.join(__dirname,'schema.sql'),'utf8'));
  await app.store.cleanup();const timer=setInterval(()=>app.store.cleanup().catch(()=>{}),3600000);timer.unref();
- app.server.listen(Number(process.env.PORT||7000),'0.0.0.0',()=>console.log('DolphinDiver Collections '+VERSION+' ready'));
+ app.server.listen(Number(process.env.PORT||7000),'0.0.0.0',()=>console.log('WatchNest '+VERSION+' ready'));
  const shutdown=()=>app.server.close(()=>db.end().then(()=>process.exit(0)));process.on('SIGTERM',shutdown);process.on('SIGINT',shutdown);
 }
 if(require.main===module)main().catch(e=>{console.error(e.code?'Startup failed; database error '+e.code:e.message);process.exit(1);});

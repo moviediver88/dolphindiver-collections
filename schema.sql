@@ -32,3 +32,6 @@ CREATE TABLE IF NOT EXISTS dd_memberships (
 CREATE TABLE IF NOT EXISTS dd_limits (
  key CHAR(64) PRIMARY KEY, hits INTEGER NOT NULL, expires_at TIMESTAMPTZ NOT NULL
 );
+
+-- Safe upgrade: null means this older title still needs a genre lookup.
+ALTER TABLE dd_items ADD COLUMN IF NOT EXISTS genres TEXT[];
