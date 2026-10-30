@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: dolphindiver-collections
+    runtime: node
+    plan: free
+    buildCommand: npm ci --omit=dev
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_VERSION
+        value: 22
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: APP_SECRET
+        generateValue: true
+      - key: TRUST_PROXY
+        value: 1
+      - key: REGISTRATION_OPEN
+        value: true
+      - key: MAX_ACCOUNTS
+        value: 200
