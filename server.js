@@ -6,7 +6,7 @@ const crypto=require('node:crypto');
 const {Store}=require('./store');
 const {digest,token,equal,fail,username,password,hashPassword,checkPassword,secretBox}=require('./security');
 const {metadata:defaultMetadata}=require('./metadata');
-const VERSION='0.2.1',COOKIE='dd_session';
+const VERSION='0.3.0',COOKIE='dd_session';
 const GENRES=['Action','Adventure','Animation','Biography','Comedy','Crime','Documentary','Drama','Family','Fantasy','Film-Noir','History','Horror','Music','Musical','Mystery','News','Reality-TV','Romance','Sci-Fi','Short','Sport','Talk-Show','Thriller','War','Western'];
 const uuid=x=>typeof x==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(x);
 function name(x){if(typeof x!=='string'||!x.trim()||x.trim().length>60)fail(400,'Use a collection name between 1 and 60 characters.');return x.trim();}
@@ -39,11 +39,11 @@ function createApp({db,secret,publicUrl,metadata=defaultMetadata,registrationOpe
  const cookie=(res,value,maxAge=604800)=>res.setHeader('Set-Cookie',`${COOKIE}=${value}; Path=/; HttpOnly; SameSite=Strict; Max-Age=${maxAge}${secure?'; Secure':''}`);
  const startSession=async(res,user)=>{const value=token();await store.addSession(digest(value),user.id);cookie(res,value);};
  const getUser=async req=>{const m=String(req.headers.cookie||'').match(/(?:^|;\s*)dd_session=([A-Za-z0-9_-]{43})(?:;|$)/);const u=m&&await store.session(digest(m[1]));if(!u)fail(401,'Please sign in.');return u;};
- function manifest(user,collections=[]){return {
+ function manifest(user,collections=[]){const catalogType=user?.catalog_type||'My Watchlist';return {
   id:user?'community.dolphindiver.collections.'+user.id:'community.dolphindiver.collections',version:VERSION,
   name:'WatchNest by DolphinDiver',description:'Your personal movie and TV collections. Manage titles on the configuration page. Separate from Stremio Library; no streams hosted. Optional support: https://ko-fi.com/dolphindiver',
-  resources:['catalog'],types:['WatchNest','movie','series'],
-  catalogs:collections.map(c=>({id:'dd_'+c.id,type:'WatchNest',name:c.name,extra:[{name:'genre',isRequired:false,options:GENRES},{name:'search',isRequired:false},{name:'skip',isRequired:false}]})),
+  resources:['catalog'],types:[catalogType,'movie','series'],
+  catalogs:collections.map(c=>({id:'dd_'+c.id,type:catalogType,name:c.name,extra:[{name:'genre',isRequired:false,options:GENRES},{name:'search',isRequired:false},{name:'skip',isRequired:false}]})),
   behaviorHints:{configurable:true,configurationRequired:!user}
  };}
  const server=http.createServer(async(req,res)=>{
@@ -61,7 +61,7 @@ function createApp({db,secret,publicUrl,metadata=defaultMetadata,registrationOpe
     const user=await store.feed(digest(m[1]));if(!user)fail(404,'This installation link is invalid or has been replaced.');
     if(m[2]==='configure'){headers(res);res.writeHead(302,{Location:'/configure'});return res.end();}
     if(m[2]==='manifest.json'){const cols=(await store.state(user.id)).collections;return json(res,200,manifest(user,cols),true);}
-    const c=m[2].match(/^catalog\/(?:WatchNest|Collections)\/dd_([a-f0-9-]{36})(?:\/([^/]*))?\.json$/);
+    const c=m[2].match(/^catalog\/(?:My%20Watchlist|My Watchlist|WatchNest|Collections)\/dd_([a-f0-9-]{36})(?:\/([^/]*))?\.json$/);
     if(!c||!uuid(c[1]))fail(404,'Catalog not found.');
     const extras=new URLSearchParams(c[2]||'');for(const [k,v] of url.searchParams)extras.set(k,v);
     const search=String(extras.get('search')||'').slice(0,100),raw=String(extras.get('skip')||'0');const skip=/^\d+$/.test(raw)?Math.min(Number(raw),100000):0;

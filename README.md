@@ -2,9 +2,9 @@
 
 ### Your next watch, organized.
 
-Create your own movie and television collections and display them in **Stremio → Discover → WatchNest**.
+Create your own movie and television collections and display them in **Stremio → Discover → My Watchlist**.
 
-**Version 0.2.1 · Public beta software · Personal collections for separate accounts**
+**Version 0.3.0 · Public beta software · Personal collections for separate accounts**
 
 ## What it does
 
@@ -17,18 +17,18 @@ Create your own movie and television collections and display them in **Stremio �
 - Recover an account with a private, one-use recovery code.
 - Export a JSON copy of your collections and saved titles.
 
-### Starter collections
+### Starter catalogs for new accounts
 
-| Collection | Behavior |
+| Catalog | Contents |
 | --- | --- |
-| My Shows | Custom collection for series |
-| Watching Together | Custom collection for movies and series |
-| Watch Later — TV Shows | Custom collection for series |
-| Watch Later — Movies | Custom collection for movies |
-| TV Shows | Automatically includes every series you save |
-| Movies | Automatically includes every movie you save |
+| TV Shows | Manually saved television series |
+| Movies | Manually saved movies |
+| Specials | Manually selected standalone specials, indexed as movies or series |
+| Music | Manually selected concert films, music documentaries or music videos indexed as movies or series |
 
-Rename My Shows or create your own collections such as Mark's Shows, Velma's Shows, or Weekend Movies. Collection names are entirely user-defined. Automatic Movies and TV Shows can be renamed. Choose **Make this a regular collection** to keep their current titles but stop automatically including other titles; they can then be managed or deleted like other regular collections.
+New accounts use **My Watchlist** as their Discover type. Nothing is added automatically. Saving a movie in Specials does not put it in Movies; use **Also save to…** if you want it in both. Music is not an audio song or album library. Search results depend on Cinemeta; not every special or music video is available.
+
+Existing accounts keep their names, ordering, collection memberships and **WatchNest** Discover type. The Mark/Velma household layout is not installed in other people's accounts. All collections can be renamed; users can create their own lists. Older automatic collections remain automatic until converted using **Make this a regular collection**.
 
 ## How people use it
 
@@ -37,7 +37,7 @@ Rename My Shows or create your own collections such as Mark's Shows, Velma's Sho
 3. Save the recovery code somewhere private. There is no email recovery in this version.
 4. Search for titles and add them to a collection.
 5. Choose **Install in Stremio**, or copy the personal manifest link into Stremio's add-on search or Addon Manager.
-6. Open **Discover → WatchNest** in Stremio.
+6. Open **Discover → My Watchlist** in Stremio.
 7. Select a collection, then use its genre dropdown to filter your saved titles.
 
 Other people visit the same public website and create their own accounts. They must not install someone else's personal link unless they intend to share that person's collections.
@@ -97,7 +97,7 @@ For local development, set DATABASE_URL, APP_SECRET, and PUBLIC_URL in your shel
 - No email sign-in, email password reset, or email verification. Save the recovery code.
 - No true subfolders, episode-level collections, drag-and-drop title ordering, or automatic JSON restore yet. JSON export is provided for portability.
 - Titles are sorted by most recently added within a collection.
-- Search and artwork depend on Cinemeta and external image services; not every production is indexed.
+- Search, genres and artwork depend on Cinemeta and external image services; not every production is indexed.
 - Version 0.1 browsing and Smallville playback were confirmed by the operator on Windows and onn Google TV. Version 0.2 genre filtering still needs testing on those clients.
 - Older titles acquire genres in batches of up to 20 when their collection is opened. With large older lists, revisit the collection to complete the lookup. Titles with missing provider genres remain visible without a genre filter.
 - This release has local functional and access-control tests; it has not received an independent security audit.

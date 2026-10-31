@@ -1,7 +1,7 @@
 'use strict';
 const {randomUUID}=require('node:crypto');
 const {fail}=require('./security');
-const starters=[['My Shows','series',false],['Watching Together','all',false],['Watch Later — TV Shows','series',false],['Watch Later — Movies','movie',false],['TV Shows','series',true],['Movies','movie',true]];
+const starters=[['TV Shows','series',false],['Movies','movie',false],['Specials','all',false],['Music','all',false]];
 class Store {
  constructor(db){this.db=db;}
  async tx(fn){const c=await this.db.connect();try{await c.query('BEGIN');const out=await fn(c);await c.query('COMMIT');return out;}catch(e){await c.query('ROLLBACK');throw e;}finally{c.release();}}
@@ -12,12 +12,12 @@ class Store {
   await c.query(`INSERT INTO dd_limits(key,hits,expires_at) VALUES($1,0,'2099-01-01') ON CONFLICT DO NOTHING`,['0'.repeat(64)]);
   await c.query('SELECT key FROM dd_limits WHERE key=$1 FOR UPDATE',['0'.repeat(64)]);
   const count=await c.query('SELECT count(*)::int AS n FROM dd_users');if(count.rows[0].n>=max)fail(503,'Registration is full. Please contact the service operator.');
-  await c.query('INSERT INTO dd_users(id,username,password_hash,recovery_hash,feed_hash,feed_cipher) VALUES($1,$2,$3,$4,$5,$6)',[user.id,user.username,user.password_hash,user.recovery_hash,user.feed_hash,user.feed_cipher]);
+  await c.query('INSERT INTO dd_users(id,username,password_hash,recovery_hash,feed_hash,feed_cipher,catalog_type) VALUES($1,$2,$3,$4,$5,$6,$7)',[user.id,user.username,user.password_hash,user.recovery_hash,user.feed_hash,user.feed_cipher,'My Watchlist']);
   for(let i=0;i<starters.length;i++){const [name,kind,smart]=starters[i];await c.query('INSERT INTO dd_collections(id,user_id,name,kind,smart,position) VALUES($1,$2,$3,$4,$5,$6)',[randomUUID(),user.id,name,kind,smart,i]);}
  });}
  async byUsername(n){return (await this.db.query('SELECT * FROM dd_users WHERE username=$1',[n])).rows[0];}
  async session(hash){return (await this.db.query('SELECT u.* FROM dd_users u JOIN dd_sessions s ON s.user_id=u.id WHERE s.token_hash=$1 AND s.expires_at>now()',[hash])).rows[0];}
- async feed(hash){return (await this.db.query('SELECT id FROM dd_users WHERE feed_hash=$1',[hash])).rows[0];}
+ async feed(hash){return (await this.db.query('SELECT id,catalog_type FROM dd_users WHERE feed_hash=$1',[hash])).rows[0];}
  async addSession(hash,id){await this.db.query("INSERT INTO dd_sessions(token_hash,user_id,expires_at) VALUES($1,$2,now()+interval '7 days')",[hash,id]);}
  async state(uid){
   const collections=(await this.db.query('SELECT id,name,kind,smart,position FROM dd_collections WHERE user_id=$1 ORDER BY position,id',[uid])).rows;

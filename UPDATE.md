@@ -1,48 +1,41 @@
-# Update to version 0.2.1
+# WatchNest v0.3.0 — My Watchlist generic setup
 
-## Upload and deploy
+## Update your existing service
+
+Keep your current GitHub repository, Render service, Neon database, DATABASE_URL and APP_SECRET. No new hosting setup is needed.
+
+Before updating, use Account → Download collections backup on your management webpage.
+
+### GitHub upload — keep folders in the right place
 
 1. Extract this ZIP into a new folder.
-2. In the existing dolphindiver-collections GitHub repository, choose Add file → Upload files.
-3. Upload the contents of the extracted folder, including the public and test folders. Do not upload the outer folder itself.
-4. Commit the update. Render should deploy the new commit automatically.
-5. Keep the existing DATABASE_URL and APP_SECRET unchanged. Do not create a new database or service.
-6. Check /health shows version 0.2.1 and database connected.
-7. Reload your Collections management webpage.
-8. Reinstall the same personal manifest link if Stremio does not show the new genre dropdown. Do not replace the installation link.
+2. Open the root of moviediver88/dolphindiver-collections on GitHub.
+3. Choose Add file → Upload files. Upload only the loose files from the extracted folder, not files from inside public or test. Commit as Update WatchNest to v0.3.0.
+4. Open the public folder on GitHub. Choose Add file → Upload files. Open public in your extracted download and upload app.js, index.html and style.css. Commit.
+5. Open the test folder on GitHub. Upload app.test.js, fixture.js and generic.test.js from the downloaded test folder. Commit.
+6. Wait for the latest Render deployment to finish. Open /health; expect version 0.3.0 and database connected.
+7. Refresh the management webpage. Keep using your current account for Mark and Velma.
 
-Existing accounts, saved titles, collection IDs and installation links are preserved. The schema upgrade adds a genre column without deleting records. If deployment fails, read the Render logs rather than resetting the database.
+Existing data and personal installation links are preserved. Existing accounts retain WatchNest as the Discover type and their current lists. Do not delete or recreate the database or regenerate APP_SECRET.
 
-## Mark and Velma's seven collections
+## Test the generic setup
 
-First use Account → Download collections backup.
+1. Open the public website in a private/incognito window.
+2. Create a separate test account and save its recovery code privately.
+3. Confirm TV Shows, Movies, Specials and Music appear, with no titles in them.
+4. Search in one list and add a title. Specials and Music have a Movies/TV Shows selector: select how the title is indexed. They do not offer a separate music database.
+5. Confirm the title appears only in that list. Use Also save to… to put a title in another list.
+6. Install this test account's personal link into a separate Stremio account, or test on your own knowing it will add a second WatchNest installation. Keep the Mark/Velma installation.
+7. Open Discover → My Watchlist → a catalog → a genre. Check browsing and playback on Windows and onn Google TV.
 
-1. Rename My Shows to Mark’s Shows.
-2. Keep Watching Together.
-3. Open automatic TV Shows, choose Make this a regular collection and confirm. Rename it Saved TV Shows — Mark. Its current titles are retained.
-4. Open automatic Movies, make it a regular collection and rename it Saved Movies — Mark.
-5. Create Velma’s Shows (TV Shows only).
-6. Create Saved TV Shows — Velma (TV Shows only).
-7. Create Saved Movies — Velma (Movies only).
-8. If either Watch Later list contains titles, use Also save to… to put them in the desired saved collection first. Then delete both Watch Later collections.
-9. Use the up/down arrows to arrange:
-   - Mark’s Shows
-   - Velma’s Shows
-   - Watching Together
-   - Saved TV Shows — Mark
-   - Saved TV Shows — Velma
-   - Saved Movies — Mark
-   - Saved Movies — Velma
-10. Reinstall the same personal link to refresh the Stremio collection names and order if needed.
+## Share with friends and family
 
-These are regular collections: adding a title to Mark’s Shows does not automatically put it in Saved TV Shows — Mark. Use Also save to… to include it in both. People sharing the same Collections account can manage every list; the names are organizational labels, not separate permissions. Other users' accounts and starter names are unchanged.
+Share https://dolphindiver-collections.onrender.com — not your private installation link. Each person creates a separate WatchNest account, saves their recovery code, adds titles and installs their personal link into their own Stremio account. People who deliberately share one WatchNest account can edit the same lists.
 
-## Genres
+Optional donations use the existing Support the project button linking to https://ko-fi.com/dolphindiver. The add-on remains free; donations do not buy streams or access. Public directory submissions must use only the base /manifest.json URL, never a personal /addon/… URL.
 
-In Stremio choose Discover → WatchNest → Watching Together → a genre such as Comedy, Drama or Horror. The genre only filters titles already saved in that collection. A title may have several genres. Use the default unfiltered option to show all saved titles. Menu wording varies by Stremio client.
+## Limits and validation
 
-New saves include genres from Cinemeta. Existing saves fetch genres automatically in batches of up to 20 per collection request. Large old collections may need several visits; provider failures can be retried by reopening the collection. Titles without available genres still appear in the unfiltered catalog.
+Manual starter catalogs are new-account defaults only. Existing accounts are not reset. Each collection supports the genre dropdown. Music covers indexed video titles, not songs/albums. Metadata or streams may be unavailable for individual titles.
 
-## WatchNest name
-
-The add-on is now WatchNest by DolphinDiver, and its Discover type is WatchNest. Your existing website URL, database, accounts, personal links, collection IDs and donation link stay the same. Old Collections catalog URLs remain supported for cached installations. Reinstall the same personal manifest link to refresh the displayed name and type. Do not create a second service or regenerate secrets.
+Local tests cover new defaults, no automatic cross-list additions, manual copying, genre filtering, encoded My Watchlist URLs, account isolation and an old-schema upgrade preserving household data and links. The v0.3 interface and playback still need testing on your actual Stremio clients before wider sharing.

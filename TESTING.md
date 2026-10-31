@@ -1,4 +1,4 @@
-# Validation for v0.2.1
+# Validation for v0.3.0
 
 Local validation performed while preparing this package on October 29, 2026.
 
@@ -49,3 +49,7 @@ Follow DEPLOY.md to verify a real hosted PostgreSQL connection, persistence acro
 ## Version 0.2 additions
 
 Local tests cover advertised genre options, matching and nonmatching genres, combined search/pagination, backfill of old null-genre titles, and conversion of automatic collections with ownership checks and retained memberships. Client dropdown behavior still needs deployment testing.
+
+## Generic setup checks
+
+A separate generic test covers four manual new-account lists, no automatic classification into Movies/TV Shows, Specials/Music mixed types, copying, encoded My Watchlist URLs, ownership isolation and migration from the previous user schema while retaining household names, items and installation links.

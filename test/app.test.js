@@ -13,6 +13,14 @@ test('multi-user collection flows and access boundaries',{timeout:90000},async t
   await t.test('registration, starter lists, cookies and private authentication',async()=>{
    alice=await req('/api/signup','POST',{username:'alice',password:'a strong password 123'});assert.equal(alice.status,201);code=alice.data.recoveryCode;assert.equal(code.length,43);assert.match(alice.headers.get('set-cookie'),/HttpOnly; SameSite=Strict/);
    bob=await req('/api/signup','POST',{username:'bob',password:'another good password 456'});assert.equal(bob.status,201);
+   // Model the existing v0.2 household layout so upgrade compatibility stays covered.
+   for(const n of ['alice','bob']){
+    const u=(await db.query('SELECT id FROM dd_users WHERE username=$1',[n])).rows[0];
+    await db.query("UPDATE dd_users SET catalog_type='WatchNest' WHERE id=$1",[u.id]);
+    await db.query('DELETE FROM dd_collections WHERE user_id=$1',[u.id]);
+    const legacy=[['My Shows','series',false],['Watching Together','all',false],['Watch Later — TV Shows','series',false],['Watch Later — Movies','movie',false],['TV Shows','series',true],['Movies','movie',true]];
+    for(let i=0;i<legacy.length;i++)await db.query('INSERT INTO dd_collections(id,user_id,name,kind,smart,position) VALUES($1,$2,$3,$4,$5,$6)',[require('node:crypto').randomUUID(),u.id,...legacy[i],i]);
+   }
    const me=await req('/api/me','GET',null,alice.cookie);aliceState=me.data;assert.equal(aliceState.collections.length,6);assert.deepEqual(aliceState.items,[]);assert.ok(!JSON.stringify(me.data).includes('password_hash'));assert.equal(me.headers.get('cache-control'),'no-store');
    bobState=(await req('/api/me','GET',null,bob.cookie)).data;assert.notEqual(aliceState.collections[0].id,bobState.collections[0].id);
    assert.equal((await req('/api/me')).status,401);

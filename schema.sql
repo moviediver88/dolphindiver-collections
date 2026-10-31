@@ -35,3 +35,6 @@ CREATE TABLE IF NOT EXISTS dd_limits (
 
 -- Safe upgrade: null means this older title still needs a genre lookup.
 ALTER TABLE dd_items ADD COLUMN IF NOT EXISTS genres TEXT[];
+
+-- Existing accounts keep their Discover type; new accounts choose My Watchlist.
+ALTER TABLE dd_users ADD COLUMN IF NOT EXISTS catalog_type TEXT NOT NULL DEFAULT 'WatchNest';
