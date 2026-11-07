@@ -41,6 +41,7 @@ function createApp({db,secret,publicUrl,metadata=defaultMetadata,registrationOpe
  const getUser=async req=>{const m=String(req.headers.cookie||'').match(/(?:^|;\s*)dd_session=([A-Za-z0-9_-]{43})(?:;|$)/);const u=m&&await store.session(digest(m[1]));if(!u)fail(401,'Please sign in.');return u;};
  function manifest(user,collections=[]){const catalogType=user?.catalog_type||'My Watchlist';return {
   id:user?'community.dolphindiver.collections.'+user.id:'community.dolphindiver.collections',version:VERSION,
+  logo:'https://raw.githubusercontent.com/moviediver88/dolphindiver-collections/main/WatchNest%20Cinematic%20Logo.png',
   name:'WatchNest by DolphinDiver',description:'Your personal movie and TV collections. Manage titles on the configuration page. Separate from Stremio Library; no streams hosted. Optional support: https://ko-fi.com/dolphindiver',
   resources:['catalog'],types:[catalogType,'movie','series'],
   catalogs:collections.map(c=>({id:'dd_'+c.id,type:catalogType,name:c.name,extra:[{name:'genre',isRequired:false,options:GENRES},{name:'search',isRequired:false},{name:'skip',isRequired:false}]})),
