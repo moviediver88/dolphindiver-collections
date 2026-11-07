@@ -50,7 +50,7 @@ function card(item,search=false){
 function drawSaved(){const c=collection();if(!c)return;const q=$('saved-filter').value.toLowerCase();const items=members(c).filter(x=>(x.name+' '+x.year).toLowerCase().includes(q));$('saved-heading').textContent='Saved titles · '+members(c).length;$('saved-items').replaceChildren(...items.map(x=>card(x)));$('empty-state').hidden=items.length>0;if(!items.length&&q){$('empty-state').querySelector('h3').textContent='No matching saved titles.';$('empty-state').querySelector('p').textContent='Try another search within this collection.';}else{$('empty-state').querySelector('h3').textContent='Your next watch starts here.';$('empty-state').querySelector('p').textContent='Search above to add a title, or copy a saved title from another collection.';}}
 function draw(){
  if(!state.collections.length)return;drawNav();const c=collection();if(!c)return;
- $('account-name').textContent=state.username+' / PERSONAL SPACE';$('collection-title').textContent=c.name;
+ $('account-name').textContent=state.username+' / PERSONAL SPACE';$('settings-username').textContent=state.username;$('collection-title').textContent=c.name;
  $('collection-description').textContent=c.smart?'Automatic collection · Includes all your saved '+(c.kind==='movie'?'movies':'TV shows'):(c.kind==='all'?'Movies and TV Shows':c.kind==='movie'?'Movies only':'TV Shows only')+' · Titles can belong to more than one collection';
  $('make-manual').hidden=!c.smart;
  $('delete-collection').hidden=c.smart;$('move-up').disabled=state.collections[0].id===selected;$('move-down').disabled=state.collections.at(-1).id===selected;
