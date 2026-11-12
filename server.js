@@ -45,8 +45,11 @@ function createApp({db,secret,publicUrl,metadata=defaultMetadata,registrationOpe
   name:'WatchNest by DolphinDiver',description:'Your personal movie and TV collections. Manage titles on the configuration page. Separate from Stremio Library; no streams hosted. Optional support: https://ko-fi.com/dolphindiver',
   resources:['catalog'],types:[catalogType,'movie','series'],
   catalogs:collections.map(c=>({id:'dd_'+c.id,type:catalogType,name:c.name,extra:[{name:'genre',isRequired:false,options:GENRES},{name:'search',isRequired:false},{name:'skip',isRequired:false}]})),
-  behaviorHints:{configurable:true,configurationRequired:!user}
- };}
+stremioAddonsConfig:{
+  issuer:"https://stremio-addons.net",
+  signature:"eyJhbGciOiJkaXIiLCJlbmMiOiJBMTI4Q0JDLUhTMjU2In0..5JYiAmJgEM9er9a-i8GvWw.cQdVVzZJV4oqjcy-3870nMtUN5JyPPTiYug6SmtZOqFhiJWMkOdJAczxEsT_KpYmS6R8__KrtHWP777RmJEPeyUXcdbLU5BtcvtO5Egd7jPel3aE1rvrCgEKAlzg3gOF.qA1X-gOvduDsyXOXp-KW7Q"
+},
+behaviorHints:{configurable:true,configurationRequired:!user} };}
  const server=http.createServer(async(req,res)=>{
   let isFeed=false;
   try{
