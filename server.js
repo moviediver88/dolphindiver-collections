@@ -44,7 +44,8 @@ function createApp({db,secret,publicUrl,metadata=defaultMetadata,registrationOpe
   logo:'https://raw.githubusercontent.com/moviediver88/dolphindiver-collections/main/WatchNest%20Cinematic%20Logo.png',
   name:'WatchNest by DolphinDiver',description:'Your personal movie and TV collections. Manage titles on the configuration page. Separate from Stremio Library; no streams hosted. Optional support: https://ko-fi.com/dolphindiver',
   resources:['catalog'],types:[catalogType,'movie','series'],
-  catalogs:[{id:'dd_navigation',type:catalogType,name:'My WatchNest Collections',extra:[{name:'genre',isRequired:false,options:GENRES},{name:'search',isRequired:false},{name:'skip',isRequired:false}]}],
+  catalogs:collections.map(c=>({id:'dd_'+c.id,type:catalogType,name:c.name,extra:[{name:'genre',isRequired:false,options:GENRES},{name:'search',isRequired:false},{name:'skip',isRequired:false}]})),
+
 
 stremioAddonsConfig:{
   issuer:"https://stremio-addons.net",
@@ -66,16 +67,7 @@ behaviorHints:{configurable:true,configurationRequired:!user} };}
     const user=await store.feed(digest(m[1]));if(!user)fail(404,'This installation link is invalid or has been replaced.');
     if(m[2]==='configure'){headers(res);res.writeHead(302,{Location:'/configure'});return res.end();}
     if(m[2]==='manifest.json'){const cols=(await store.state(user.id)).collections;return json(res,200,manifest(user,cols),true);}
-    if(m[2].startsWith('catalog/')&&m[2].includes('/dd_navigation/')){
-    const cols=(await store.state(user.id)).collections;
-const metas=cols.map(c=>({
-  id:'dd_'+c.id,
-  type:user.catalog_type||'My Watchlist',
-  name:c.name,
-  poster:'https://raw.githubusercontent.com/moviediver88/dolphindiver-collections/main/WatchNest%20Cinematic%20Logo.png'
-}));
-return json(res,200,{metas},true);
-} 
+    
     const c=m[2].match(/^catalog\/(?:My%20Watchlist|My Watchlist|WatchNest|Collections)\/dd_([a-f0-9-]{36})(?:\/([^/]*))?\.json$/);
     if(!c||!uuid(c[1]))fail(404,'Catalog not found.');
     const extras=new URLSearchParams(c[2]||'');for(const [k,v] of url.searchParams)extras.set(k,v);
