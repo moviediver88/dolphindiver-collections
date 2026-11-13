@@ -114,7 +114,7 @@ test('multi-user collection flows and access boundaries',{timeout:90000},async t
   await t.test('rate limits persist in database and health omits user statistics',async()=>{
    await app.store.limit('a'.repeat(64),1,900);await assert.rejects(()=>app.store.limit('a'.repeat(64),1,900),e=>e.status===429);
    const h=await req('/health');assert.deepEqual(Object.keys(h.data).sort(),['database','status','version']);
-   const root=await req('/manifest.json');assert.equal(root.data.behaviorHints.configurationRequired,true);assert.deepEqual(root.data.catalogs,[]);
+   const root=await req('/manifest.json');assert.equal(root.data.behaviorHints.configurationRequired,true);assert.equal(root.data.catalogs.length,1);assert.equal(root.data.catalogs[0].id,'dd_navigation');
   });
  }finally{await close();await db.end();}
 });
