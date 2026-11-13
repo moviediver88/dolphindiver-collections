@@ -6,7 +6,7 @@ const crypto=require('node:crypto');
 const {Store}=require('./store');
 const {digest,token,equal,fail,username,password,hashPassword,checkPassword,secretBox}=require('./security');
 const {metadata:defaultMetadata}=require('./metadata');
-const VERSION='0.3.0',COOKIE='dd_session';
+const VERSION='0.4.0',COOKIE='dd_session';
 const GENRES=['Action','Adventure','Animation','Biography','Comedy','Crime','Documentary','Drama','Family','Fantasy','Film-Noir','History','Horror','Music','Musical','Mystery','News','Reality-TV','Romance','Sci-Fi','Short','Sport','Talk-Show','Thriller','War','Western'];
 const uuid=x=>typeof x==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(x);
 function name(x){if(typeof x!=='string'||!x.trim()||x.trim().length>60)fail(400,'Use a collection name between 1 and 60 characters.');return x.trim();}
