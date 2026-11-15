@@ -1,14 +1,16 @@
 
+
 name: WatchNest Tests
 
 on:
   push:
     branches:
       - watchnest-v0.4.0-development
-           - watchnest-v0.5.0-testing 
-      pull_request:
+      - watchnest-v0.5.0-testing
+  pull_request:
     branches:
       - main
+
 
 jobs:
   test:
