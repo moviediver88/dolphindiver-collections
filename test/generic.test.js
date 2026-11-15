@@ -13,7 +13,7 @@ test('generic manual catalogs, encoded type, independent accounts and safe house
  assert.equal((await req('/api/items','POST',{collectionId:col('Specials'),id:'tt0371746',type:'movie'},a.cookie)).status,201);
  assert.equal((await req('/api/items','POST',{collectionId:col('Music'),id:'tt9140554',type:'series'},a.cookie)).status,201);
  const link=(await req('/api/install','POST',{},a.cookie)).data.url;const mp=new URL(link).pathname;
- const manifest=(await req(mp)).data;assert.equal(manifest.types[0],'My Watchlist');assert.ok(manifest.catalogs.every(x=>x.type==='My Watchlist'));
+ const manifest=(await req(mp)).data;assert.equal(manifest.types[0],'My Watchlist');assert.ok(manifest.catalogs.filter(x=>x.id.startsWith('dd_')&&x.id!=='dd_all_saved').every(x=>x.type==='My Watchlist'));assert.ok(manifest.catalogs.some(x=>x.id==='dd_all_saved'&&x.type==='movie'));assert.ok(manifest.catalogs.some(x=>x.id==='dd_all_saved'&&x.type==='series'));
  const feed=n=>mp.replace('manifest.json','catalog/My%20Watchlist/dd_'+col(n)+'.json');
  assert.equal((await req(feed('Movies'))).data.metas.length,0);assert.equal((await req(feed('TV Shows'))).data.metas.length,0);
  assert.equal((await req(feed('Specials').replace('.json','/genre=Action.json'))).data.metas.length,1);
