@@ -61,6 +61,27 @@ class Store {
   return (await this.db.query(`SELECT i.item_key AS key,i.imdb_id AS id,i.type FROM dd_items i JOIN dd_collections c ON c.user_id=i.user_id WHERE c.user_id=$1 AND c.id=$2 AND i.genres IS NULL AND ((c.smart AND i.type=c.kind) OR EXISTS(SELECT 1 FROM dd_memberships m WHERE m.user_id=i.user_id AND m.item_key=i.item_key AND m.collection_id=c.id)) LIMIT 20`,[uid,id])).rows;
  }
  async saveGenres(uid,key,genres){await this.db.query('UPDATE dd_items SET genres=$1 WHERE user_id=$2 AND item_key=$3 AND genres IS NULL',[genres,uid,key]);}
+ async allTitles(uid,search,skip,collectionName=null,type=null){
+  const q='%'+search.replace(/[\\%_]/g,'\\$&')+'%';
+  const sql=`SELECT i.imdb_id AS id,i.type,i.name,i.year AS "releaseInfo",i.poster
+    FROM dd_items i WHERE i.user_id=$1 AND i.name ILIKE $2 AND ($5::text IS NULL OR i.type=$5)
+    AND ($4::text IS NULL OR EXISTS (
+      SELECT 1 FROM dd_collections c WHERE c.user_id=i.user_id AND lower(c.name)=lower($4)
+      AND ((c.smart AND c.kind=i.type) OR EXISTS (
+        SELECT 1 FROM dd_memberships m WHERE m.user_id=i.user_id AND m.item_key=i.item_key AND m.collection_id=c.id))))
+    ORDER BY i.added_at DESC,i.item_key LIMIT 100 OFFSET $3`;
+  return (await this.db.query(sql,[uid,q,skip,collectionName,type])).rows;
+ }
+ async catalogTyped(uid,id,type,search,skip,genre='') {
+  if(!['movie','series'].includes(type))throw Error('Invalid catalog type');
+  const c=(await this.db.query('SELECT * FROM dd_collections WHERE user_id=$1 AND id=$2',[uid,id])).rows[0];if(!c)return null;
+  const q='%'+search.replace(/[\\%_]/g,'\\$&')+'%';
+  const sql=c.smart
+   ?'SELECT i.imdb_id AS id,i.type,i.name,i.year AS "releaseInfo",i.poster FROM dd_items i WHERE i.user_id=$1 AND i.type=$2 AND i.name ILIKE $3 AND ($5=\'\' OR $5=ANY(i.genres)) ORDER BY i.added_at DESC,i.item_key LIMIT 100 OFFSET $4'
+   :'SELECT i.imdb_id AS id,i.type,i.name,i.year AS "releaseInfo",i.poster FROM dd_items i JOIN dd_memberships m ON m.user_id=i.user_id AND m.item_key=i.item_key WHERE m.user_id=$1 AND m.collection_id=$2 AND i.type=$6 AND i.name ILIKE $3 AND ($5=\'\' OR $5=ANY(i.genres)) ORDER BY m.added_at DESC,i.item_key LIMIT 100 OFFSET $4';
+  if(c.smart&&c.kind!==type)return [];
+  return (await this.db.query(sql,c.smart?[uid,type,q,skip,genre]:[uid,id,q,skip,genre,type])).rows;
+ }
  async catalog(uid,id,search,skip,genre='') {
   const c=(await this.db.query('SELECT * FROM dd_collections WHERE user_id=$1 AND id=$2',[uid,id])).rows[0];if(!c)return null;
   // Parameterized ILIKE avoids wildcard interpretation of a user's literal search text.

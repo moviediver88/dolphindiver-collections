@@ -6,7 +6,10 @@ const crypto=require('node:crypto');
 const {Store}=require('./store');
 const {digest,token,equal,fail,username,password,hashPassword,checkPassword,secretBox}=require('./security');
 const {metadata:defaultMetadata}=require('./metadata');
-const VERSION='0.4.0',COOKIE='dd_session';
+const VERSION='0.5.0-rc1',COOKIE='dd_session';
+const navigation=require('./navigation');
+const dynamic=require('./dynamic');
+const slots=require('./slots');
 const GENRES=['Action','Adventure','Animation','Biography','Comedy','Crime','Documentary','Drama','Family','Fantasy','Film-Noir','History','Horror','Music','Musical','Mystery','News','Reality-TV','Romance','Sci-Fi','Short','Sport','Talk-Show','Thriller','War','Western'];
 const uuid=x=>typeof x==='string'&&/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(x);
 function name(x){if(typeof x!=='string'||!x.trim()||x.trim().length>60)fail(400,'Use a collection name between 1 and 60 characters.');return x.trim();}
@@ -43,8 +46,8 @@ function createApp({db,secret,publicUrl,metadata=defaultMetadata,registrationOpe
   id:user?'community.dolphindiver.collections.'+user.id:'community.dolphindiver.collections',version:VERSION,
   logo:'https://raw.githubusercontent.com/moviediver88/dolphindiver-collections/main/WatchNest%20Cinematic%20Logo.png',
   name:'WatchNest by DolphinDiver',description:'Your personal movie and TV collections. Manage titles on the configuration page. Separate from Stremio Library; no streams hosted. Optional support: https://ko-fi.com/dolphindiver',
-  resources:['catalog'],types:[catalogType,'movie','series'],
-  catalogs:collections.map(c=>({id:'dd_'+c.id,type:catalogType,name:c.name,extra:[{name:'genre',isRequired:false,options:GENRES},{name:'search',isRequired:false},{name:'skip',isRequired:false}]})),
+  resources:['catalog','meta'],types:[catalogType,'movie','series'],
+  catalogs:[dynamic.catalog('movie'),dynamic.catalog('series'),...slots.catalogs()],
 
 
 stremioAddonsConfig:{
@@ -68,6 +71,46 @@ behaviorHints:{configurable:true,configurationRequired:!user} };}
     if(m[2]==='configure'){headers(res);res.writeHead(302,{Location:'/configure'});return res.end();}
     if(m[2]==='manifest.json'){const cols=(await store.state(user.id)).collections;return json(res,200,manifest(user,cols),true);}
     
+    // Fixed catalog slots are immutable in the manifest. They resolve the current
+    // collection by its current order on every request; no reinstall for renames.
+    const slot=slots.parse(m[2]);
+    if(slot){
+     const extras=new URLSearchParams(slot.extra);for(const [k,v] of url.searchParams)extras.set(k,v);
+     const raw=String(extras.get('skip')||'0');const skip=/^\d+$/.test(raw)?Math.min(Number(raw),10000):0;
+     const search=String(extras.get('search')||'').slice(0,100),genre=String(extras.get('genre')||'').slice(0,60);
+     const collections=(await store.state(user.id)).collections;
+     const collection=collections[slot.index];
+     if(!collection)return json(res,200,{metas:[]},true);
+     const pending=await store.pendingGenres(user.id,collection.id);
+     for(let i=0;i<pending.length;i+=4)await Promise.all(pending.slice(i,i+4).map(async item=>{try{const data=await metadata.lookup(item.id,item.type);await store.saveGenres(user.id,item.key,data.genres||[]);}catch{}}));
+     const metas=await store.catalogTyped(user.id,collection.id,slot.type,search,skip,genre);
+     return json(res,200,{metas:metas||[]},true);
+    }
+    // Native Stremio titles with an immutable manifest catalog. Collection changes
+    // are read at request time. Search `collection:NAME` to view one collection.
+    const all=m[2].match(/^catalog\/(movie|series)\/dd_all_saved(?:\/([^/]*))?\.json$/);
+    if(all){
+     const extras=new URLSearchParams(all[2]||'');for(const [k,v] of url.searchParams)extras.set(k,v);
+     const raw=String(extras.get('skip')||'0');const skip=/^\d+$/.test(raw)?Math.min(Number(raw),10000):0;
+     const parsed=dynamic.parseSearch(String(extras.get('search')||'').slice(0,100));
+     const metas=await store.allTitles(user.id,parsed.search,skip,parsed.collection,all[1]);
+     return json(res,200,{metas},true);
+    }
+    // Dynamic navigation: one immutable catalog ID, current collection names at request time.
+    const nav=m[2].match(/^catalog\/series\/dd_navigation(?:\/([^/]*))?\.json$/);
+    if(nav){
+     const extras=new URLSearchParams(nav[1]||'');for(const [k,v] of url.searchParams)extras.set(k,v);
+     const raw=String(extras.get('skip')||'0');const skip=/^\d+$/.test(raw)?Math.min(Number(raw),10000):0;
+     const collections=(await store.state(user.id)).collections;
+     return json(res,200,{metas:navigation.tiles(collections).slice(skip,skip+100)},true);
+    }
+    const navMeta=m[2].match(/^meta\/series\/(dd_collection_[0-9a-f-]+)\.json$/);
+    if(navMeta){
+     const id=navigation.parseCollectionId(navMeta[1]);if(!id)fail(404,'Collection not found.');
+     const collection=(await store.state(user.id)).collections.find(c=>c.id===id);
+     if(!collection)fail(404,'Collection not found.');
+     return json(res,200,{meta:navigation.detail(collection,origin+'/configure')},true);
+    }
     const c=m[2].match(/^catalog\/(?:My%20Watchlist|My Watchlist|WatchNest|Collections)\/dd_([a-f0-9-]{36})(?:\/([^/]*))?\.json$/);
     if(!c||!uuid(c[1]))fail(404,'Catalog not found.');
     const extras=new URLSearchParams(c[2]||'');for(const [k,v] of url.searchParams)extras.set(k,v);
